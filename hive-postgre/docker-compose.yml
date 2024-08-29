@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  hive4:
+    # image: apache/hive:4.0.0
+    build: ./hive
+    container_name: hive4
+    platform: linux/amd64
+    environment:
+      - SERVICE_NAME=hiveserver2
+      - DB_DRIVER=postgres 
+      # - HIVE_METASTORE_HOST=postgres
+      # - HIVE_METASTORE_DB_TYPE=postgres
+      # - HIVE_METASTORE_USER=admin
+      # - HIVE_METASTORE_PASSWORD=admin
+      # - HIVE_METASTORE_DB_NAME=hive_db
+    ports:
+      - '9093:9093'
+      - "10000:10000"
+      - "10002:10002"
+    volumes:
+      #- ./hive/conf/hive-site.xml:/opt/hive/conf/hive-site.xml:ro
+      - ./hive/conf/core-site.xml:/opt/hive/conf/core-site.xml:ro
+      - ./hive/conf/metastore-site.xml:/opt/hive/conf/metastore-site.xml:ro
+    depends_on:
+      - postgres
+    networks:
+      - iceberg-network
+
+  postgres:
+    image: 'postgres:11'
+    hostname: postgres
+    ports:
+      - '5431:5432'
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: hive_db
+    networks:
+      - iceberg-network
+
+  postgres-hue:
+    image: 'postgres:11'
+    hostname: postgres-hue
+    ports:
+      - '5430:5432'
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: hue_db
+    networks:
+      - iceberg-network
+
+  hue:
+    image: gethue/hue:latest
+    container_name: hue
+    ports:
+      - '8888:8888'
+    # environment:
+    #   - HUE_DATABASE_HOST=postgres-hue
+    #   - HUE_DATABASE_USER=admin
+    #   - HUE_DATABASE_PASSWORD=admin
+    #   - HUE_DATABASE_NAME=hue_db
+    #   - HIVE_SERVER_HOST=hive4
+    #   - HIVE_SERVER_PORT=10000
+    #   - POSTGRES_HOST=postgres
+    #   - POSTGRES_USER=admin
+    #   - POSTGRES_PASSWORD=admin
+    #   - POSTGRES_DB=hive_db
+    depends_on:
+      - hive4
+      - postgres
+    networks:
+      - iceberg-network
+    volumes:
+      - ./hue/conf/hue.ini:/usr/share/hue/desktop/conf/hue.ini:ro
+
+networks:
+  iceberg-network:
+    driver: bridge
