@@ -1,0 +1,1 @@
+Need to set core-site.xml for hive

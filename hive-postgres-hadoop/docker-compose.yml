@@ -1,0 +1,73 @@
+version: '3.8'
+name: hive-postgres-hadoop
+services:
+  hive4:
+    # image: apache/hive:4.0.0
+    build: ./hive
+    container_name: hive4
+    platform: linux/amd64
+    environment:
+      - SERVICE_NAME=hiveserver2
+      - DB_DRIVER=postgres 
+    ports:
+      - '9093:9093'
+      - "10000:10000"
+      - "10002:10002"
+    volumes:
+      - ./hive/conf/core-site.xml:/opt/hadoop/etc/hadoop/core-site.xml:ro
+      - ./hive/conf/metastore-site.xml:/opt/hive/conf/metastore-site.xml:ro
+    depends_on:
+      - postgres
+    networks:
+      - iceberg-network
+
+  postgres:
+    image: 'postgres:11'
+    hostname: postgres
+    ports:
+      - '5431:5432'
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: hive_db
+    networks:
+      - iceberg-network
+
+  postgres-hue:
+    image: 'postgres:11'
+    hostname: postgres-hue
+    ports:
+      - '5430:5432'
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: hue_db
+    networks:
+      - iceberg-network
+
+  hue:
+    image: gethue/hue:latest
+    container_name: hue
+    ports:
+      - '8888:8888'
+    depends_on:
+      - hive4
+      - postgres
+    networks:
+      - iceberg-network
+    volumes:
+      - ./hue/conf/hue.ini:/usr/share/hue/desktop/conf/hue.ini:ro
+
+  hadoop-standalone:
+    build:
+      context: ./hadoop-standalone
+      dockerfile: Dockerfile
+    ports:
+     - "9000:9000"
+     - "9870:9870"
+    networks:
+      - iceberg-network
+
+networks:
+  iceberg-network:
+    driver: bridge
