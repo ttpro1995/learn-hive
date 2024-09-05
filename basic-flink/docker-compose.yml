@@ -2,17 +2,24 @@ version: '3.1'
 
 services:
   flink-jobmanager:
-    image: flink:scala_2.12-java8
+    # image: flink:1.20.0-scala_2.12-java8
+    build:
+      context: ./pyflink-build
+      dockerfile: Dockerfile
     hostname: "flink-jobmanager"
     container_name: flink-jobmanager
     ports:
       - "8081:8081"
     environment:
       - JOB_MANAGER_RPC_ADDRESS=flink-jobmanager
+    volumes:
+      - ./input:/opt/meow/input
+      - ./output:/opt/meow/output
+      - ./code:/opt/meow/code
     command: jobmanager
 
   flink-taskmanager:
-    image: flink:scala_2.12-java8
+    image: flink:1.20.0-scala_2.12-java8
     hostname: "flink-taskmanager"
     container_name: flink-taskmanager
     depends_on:
